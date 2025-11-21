@@ -861,6 +861,7 @@
         const params = new URLSearchParams();
         params.set("words", encodedWords);
         params.set("state", encodedState);
+        params.set("viewer", "player"); 
 
         const url =
           window.location.origin +
@@ -883,8 +884,20 @@
 
       function loadFromURL() {
         const params = new URLSearchParams(window.location.search);
+        const viewer = params.get("viewer"); if (viewer === "player") { hideBuilderForPlayers(); }
         const encodedWords = params.get("words");
         const encodedState = params.get("state");
+
+        const builderSectionEl = document.getElementById("builder-section"); 
+        function hideBuilderForPlayers() { 
+          if (!builderSectionEl) return; // hide the whole builder panel 
+          builderSectionEl.style.display = "none"; // defensively disable inputs/buttons so they can't be used programmatically 
+          wordsRowEl.querySelectorAll("input").forEach((i) => (i.disabled = true)); 
+          builderModeInputs.forEach((i) => (i.disabled = true)); 
+          applyWordsBtn.disabled = true; shuffleBtn.disabled = true; 
+          generateLinkBtn.disabled = true; // keep the share-link textarea visible if you want players to copy link; 
+          remove if not needed }
+
 
         if (!encodedWords) {
           solutionWords = randomWords();
