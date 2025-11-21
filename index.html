@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>5x5 Word Column Swap Game</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 16px;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #0f172a;
+        color: #e5e7eb;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+      }
+
+      h1 {
+        font-size: 1.5rem;
+        margin: 0;
+        text-align: center;
+      }
+
+      main {
+        width: 100%;
+        max-width: 720px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      section {
+        background: #020617;
+        border-radius: 12px;
+        padding: 12px 14px;
+        border: 1px solid #1f2937;
+      }
+
+      section h2 {
+        margin: 0 0 8px 0;
+        font-size: 1rem;
+        color: #9ca3af;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      section h2 span.label {
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-size: 0.75rem;
+      }
+
+      section h2 span.mode {
+        font-size: 0.75rem;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: #111827;
+        border: 1px solid #374151;
+        color: #e5e7eb;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(32px, 1fr));
+        gap: 4px;
+        justify-items: center;
+      }
+
+      .cell {
+        width: 52px;
+        height: 52px;
+        max-width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        border: 1px solid #1f2937;
+        background: radial-gradient(circle at 30% 20%, #111827, #020617);
+        font-size: 1.2rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        user-select: none;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .cell.fixed {
+        background: radial-gradient(circle at 20% 0%, #334155, #020617);
+        border-color: #4b5563;
+      }
+
+      .cell.empty {
+        opacity: 0.2;
+      }
+
+      .cell.highlight {
+        outline: 2px solid #f97316;
+        outline-offset: 1px;
+      }
+
+      .cell.correct {
+        background: linear-gradient(135deg, #16a34a, #22c55e);
+        border-color: #22c55e;
+        color: #022c22;
+      }
+
+      .cell-row-label {
+        position: absolute;
+        top: 4px;
+        left: 6px;
+        font-size: 0.6rem;
+        opacity: 0.6;
+      }
+
+      .grid-row {
+        display: contents;
+      }
+
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .controls-left,
+      .controls-right {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
+
+      button {
+        border-radius: 999px;
+        border: 1px solid #374151;
+        background: #111827;
+        color: #e5e7eb;
+        padding: 6px 12px;
+        font-size: 0.85rem;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        white-space: nowrap;
+      }
+
+      button.primary {
+        background: linear-gradient(135deg, #4f46e5, #7c3aed);
+        border-color: transparent;
+      }
+
+      button.small {
+        padding: 4px 8px;
+        font-size: 0.8rem;
+      }
+
+      button:disabled {
+        opacity: 0.4;
+        cursor: default;
+      }
+
+      button:hover:not(:disabled) {
+        filter: brightness(1.08);
+      }
+
+      .hint {
+        font-size: 0.8rem;
+        color: #9ca3af;
+        margin-top: 6px;
+      }
+
+      .status {
+        font-size: 0.85rem;
+        min-height: 1.4em;
+      }
+
+      .status.ok {
+        color: #22c55e;
+      }
+
+      .status.error {
+        color: #f97316;
+      }
+
+      .status.info {
+        color: #9ca3af;
+      }
+
+      .words-input-row {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 6px;
+        margin-bottom: 6px;
+      }
+
+      .words-input-row input {
+        width: 100%;
+        padding: 6px 8px;
+        border-radius: 999px;
+        border: 1px solid #374151;
+        background: #020617;
+        color: #e5e7eb;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+      }
+
+      .words-input-row input::placeholder {
+        color: #4b5563;
+      }
+
+      .words-input-row input:focus {
+        outline: 2px solid #4f46e5;
+        outline-offset: 1px;
+        border-color: transparent;
+      }
+
+      .share-link {
+        width: 100%;
+        padding: 6px 8px;
+        border-radius: 8px;
+        border: 1px solid #374151;
+        background: #020617;
+        color: #e5e7eb;
+        font-size: 0.8rem;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+      }
+
+      .radio-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        font-size: 0.8rem;
+        color: #9ca3af;
+      }
+
+      .radio-row label {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        cursor: pointer;
+      }
+
+      .stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        font-size: 0.8rem;
+        color: #9ca3af;
+      }
+
+      .stats span {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      @media (max-width: 480px) {
+        body {
+          padding: 12px;
+        }
+
+        .cell {
+          width: 44px;
+          height: 44px;
+          font-size: 1rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>5×5 Column Swap Word Game</h1>
+
+    <main>
+      <section id="game-section">
+        <h2>
+          <span class="label">Puzzle</span>
+          <span class="mode" id="mode-label">Player mode</span>
+        </h2>
+
+        <div class="grid" id="grid"></div>
+
+        <div class="controls">
+          <div class="controls-left">
+            <button id="swap-btn" class="primary" disabled>
+              Swap selected rows
+            </button>
+            <button id="reset-btn" class="small">Reset</button>
+          </div>
+          <div class="controls-right">
+            <button id="reveal-btn" class="small">Reveal solution</button>
+          </div>
+        </div>
+
+        <div class="hint">
+          Tap two cells in the same column (not the first column) to swap their
+          rows in that column. First column is fixed. Goal is to form all 5
+          target words horizontally.
+        </div>
+
+        <div class="status info" id="status"></div>
+
+        <div class="stats" id="stats"></div>
+      </section>
+
+      <section id="builder-section">
+        <h2>
+          <span class="label">Create or share a puzzle</span>
+          <span class="mode">Designer / host mode</span>
+        </h2>
+
+        <div class="radio-row">
+          <label>
+            <input
+              type="radio"
+              name="builder-mode"
+              value="custom"
+              checked
+            />Use custom words
+          </label>
+          <label>
+            <input type="radio" name="builder-mode" value="random" />Use random
+            example
+          </label>
+        </div>
+
+        <div class="words-input-row" id="words-row">
+          <input
+            maxlength="5"
+            placeholder="WORD1"
+            data-row="0"
+            autocomplete="off"
+          />
+          <input
+            maxlength="5"
+            placeholder="WORD2"
+            data-row="1"
+            autocomplete="off"
+          />
+          <input
+            maxlength="5"
+            placeholder="WORD3"
+            data-row="2"
+            autocomplete="off"
+          />
+          <input
+            maxlength="5"
+            placeholder="WORD4"
+            data-row="3"
+            autocomplete="off"
+          />
+          <input
+            maxlength="5"
+            placeholder="WORD5"
+            data-row="4"
+            autocomplete="off"
+          />
+        </div>
+
+        <div class="controls">
+          <div class="controls-left">
+            <button id="apply-words-btn" class="primary">
+              Apply words to puzzle
+            </button>
+            <button id="shuffle-btn" class="small">
+              New random shuffle
+            </button>
+          </div>
+          <div class="controls-right">
+            <button id="generate-link-btn" class="small">
+              Generate share link
+            </button>
+          </div>
+        </div>
+
+        <textarea
+          id="share-link"
+          class="share-link"
+          rows="2"
+          readonly
+          placeholder="Your shareable link will appear here..."
+        ></textarea>
+
+        <div class="hint">
+          1) Enter 5 target words (or pick a random set). 2) Click "Apply
+          words" to see the solution. 3) Click "New random shuffle" to
+          scramble columns 2–5. 4) Click "Generate share link" and send the URL
+          to friends. When they open it, they get the scrambled puzzle with
+          your words.
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const GRID_SIZE = 5;
+
+      function safeAt(s, idx) {
+        return s && s.length > idx ? s[idx] : "";
+      }
+
+      function encodeWords(words) {
+        const joined = words.map((w) => w.toUpperCase().trim()).join("|");
+        return btoa(unescape(encodeURIComponent(joined)));
+      }
+
+      function decodeWords(encoded) {
+        try {
+          const decoded = decodeURIComponent(escape(atob(encoded)));
+          const parts = decoded.split("|").map((w) => w.toUpperCase());
+          if (parts.length !== GRID_SIZE) return null;
+          if (!parts.every((w) => /^[A-Z]{5}$/.test(w))) return null;
+          return parts;
+        } catch (e) {
+          return null;
+        }
+      }
+
+      function randomWords() {
+        const bank = [
+          "APPLE",
+          "BOARD",
+          "CLOUD",
+          "DRIVE",
+          "EARTH",
+          "FAITH",
+          "GHOST",
+          "HEART",
+          "INDEX",
+          "JAZZY",
+          "KNIFE",
+          "LIGHT",
+          "MUSIC",
+          "NORTH",
+          "OCEAN",
+          "PARTY",
+          "QUIET",
+          "ROUTE",
+          "SMART",
+          "TRAIN",
+          "UNITY",
+          "VIVID",
+          "WORLD",
+          "YOUTH",
+          "ZEBRA",
+        ];
+        const copy = [...bank];
+        const pick = [];
+        while (pick.length < GRID_SIZE && copy.length) {
+          const idx = Math.floor(Math.random() * copy.length);
+          pick.push(copy.splice(idx, 1)[0]);
+        }
+        while (pick.length < GRID_SIZE) {
+          pick.push("APPLE");
+        }
+        return pick;
+      }
+
+      function createRandomColumnPermutation() {
+        const perm = Array.from({ length: GRID_SIZE }, (_, i) => i);
+        for (let i = perm.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [perm[i], perm[j]] = [perm[j], perm[i]];
+        }
+        return perm;
+      }
+
+      function applyPermutationToColumns(words, permByCol) {
+        const rows = words.map((w) => w.split(""));
+        const grid = Array.from({ length: GRID_SIZE }, () =>
+          Array(GRID_SIZE).fill("")
+        );
+
+        for (let r = 0; r < GRID_SIZE; r++) {
+          for (let c = 0; c < GRID_SIZE; c++) {
+            grid[permByCol[c][r]][c] = rows[r][c];
+          }
+        }
+
+        return grid;
+      }
+
+      const gridEl = document.getElementById("grid");
+      const statusEl = document.getElementById("status");
+      const statsEl = document.getElementById("stats");
+      const modeLabelEl = document.getElementById("mode-label");
+
+      const swapBtn = document.getElementById("swap-btn");
+      const resetBtn = document.getElementById("reset-btn");
+      const revealBtn = document.getElementById("reveal-btn");
+
+      const applyWordsBtn = document.getElementById("apply-words-btn");
+      const shuffleBtn = document.getElementById("shuffle-btn");
+      const generateLinkBtn = document.getElementById("generate-link-btn");
+      const shareLinkEl = document.getElementById("share-link");
+      const wordsRowEl = document.getElementById("words-row");
+
+      const builderModeInputs = document.querySelectorAll(
+        'input[name="builder-mode"]'
+      );
+
+      let solutionWords = randomWords();
+      let solutionGrid = [];
+      let permByCol = [];
+      let currentGrid = [];
+      let initialGrid = [];
+      let selected = null;
+      let swapsUsed = 0;
+      let solverMode = true;
+
+      function readWordsFromInputs() {
+        const inputs = wordsRowEl.querySelectorAll("input");
+        const words = [];
+        for (const input of inputs) {
+          const v = input.value.trim().toUpperCase();
+          if (!v) return null;
+          if (!/^[A-Z]{5}$/.test(v)) return null;
+          words.push(v);
+        }
+        if (words.length !== GRID_SIZE) return null;
+        const firstLetters = words.map((w) => safeAt(w, 0));
+        const uniq = new Set(firstLetters);
+        if (uniq.size !== GRID_SIZE) {
+          return { error: "First letter of each word must be different." };
+        }
+        return words;
+      }
+
+      function writeWordsToInputs(words) {
+        const inputs = wordsRowEl.querySelectorAll("input");
+        words.forEach((w, idx) => {
+          if (inputs[idx]) inputs[idx].value = w;
+        });
+      }
+
+      function initSolutionGrid(words) {
+        solutionGrid = words.map((w) => w.split(""));
+      }
+
+      function ensurePermutations() {
+        if (!permByCol.length) {
+          permByCol = [];
+          for (let c = 0; c < GRID_SIZE; c++) {
+            if (c === 0) {
+              permByCol.push(
+                Array.from({ length: GRID_SIZE }, (_, i) => i)
+              );
+            } else {
+              let perm;
+              do {
+                perm = createRandomColumnPermutation();
+              } while (
+                perm.every((rowIdx, i) => rowIdx === i)
+              );
+              permByCol.push(perm);
+            }
+          }
+        }
+      }
+
+      function buildInitialGridFromSolution() {
+        ensurePermutations();
+        return applyPermutationToColumns(solutionWords, permByCol);
+      }
+
+      function createGridDOM() {
+        gridEl.innerHTML = "";
+        for (let r = 0; r < GRID_SIZE; r++) {
+          for (let c = 0; c < GRID_SIZE; c++) {
+            const cell = document.createElement("div");
+            cell.className = "cell";
+            if (c === 0) cell.classList.add("fixed");
+
+            cell.dataset.row = String(r);
+            cell.dataset.col = String(c);
+
+            const label = document.createElement("span");
+            label.className = "cell-row-label";
+            label.textContent = String(r + 1);
+            cell.appendChild(label);
+
+            cell.addEventListener("click", () => onCellClick(r, c));
+            gridEl.appendChild(cell);
+          }
+        }
+      }
+
+      function renderGrid() {
+        const cells = gridEl.querySelectorAll(".cell");
+        cells.forEach((cell) => {
+          const r = Number(cell.dataset.row);
+          const c = Number(cell.dataset.col);
+          const val = currentGrid[r]?.[c] || "";
+          cell.childNodes.forEach((child) => {
+            if (child.nodeType === Node.TEXT_NODE) {
+              cell.removeChild(child);
+            }
+          });
+          cell.appendChild(document.createTextNode(val || "\u00a0"));
+          if (!val) cell.classList.add("empty");
+          else cell.classList.remove("empty");
+        });
+        highlightCorrectCells();
+        updateStats();
+      }
+
+      function highlightCorrectCells() {
+        const cells = gridEl.querySelectorAll(".cell");
+        cells.forEach((cell) => {
+          cell.classList.remove("correct");
+        });
+
+        for (let r = 0; r < GRID_SIZE; r++) {
+          for (let c = 0; c < GRID_SIZE; c++) {
+            const val = currentGrid[r][c];
+            const correct = solutionGrid[r][c];
+            if (val && val === correct) {
+              const selector = `.cell[data-row="${r}"][data-col="${c}"]`;
+              const cell = gridEl.querySelector(selector);
+              if (cell) cell.classList.add("correct");
+            }
+          }
+        }
+      }
+
+      function setStatus(message, type = "info") {
+        statusEl.textContent = message;
+        statusEl.className = "status " + type;
+      }
+
+      function updateStats() {
+        const wordsFromGrid = currentGrid.map((row) => row.join(""));
+        const solvedRows = wordsFromGrid.filter(
+          (w, idx) => w === solutionWords[idx]
+        ).length;
+
+        statsEl.innerHTML = "";
+        const spanSolved = document.createElement("span");
+        spanSolved.textContent = `Solved rows: ${solvedRows}/${GRID_SIZE}`;
+        statsEl.appendChild(spanSolved);
+
+        const spanSwaps = document.createElement("span");
+        spanSwaps.textContent = `Swaps used: ${swapsUsed}`;
+        statsEl.appendChild(spanSwaps);
+
+        if (solvedRows === GRID_SIZE) {
+          setStatus("Puzzle solved! All words are correct.", "ok");
+        }
+      }
+
+      function onCellClick(r, c) {
+        if (!solverMode) {
+          setStatus(
+            "You are in designer mode. Use the controls in the bottom panel.",
+            "info"
+          );
+          return;
+        }
+
+        if (c === 0) {
+          setStatus("First column is fixed and cannot be swapped.", "error");
+          return;
+        }
+
+        const cell = gridEl.querySelector(
+          `.cell[data-row="${r}"][data-col="${c}"]`
+        );
+        if (!cell) return;
+
+        if (
+          selected &&
+          selected.row === r &&
+          selected.col === c
+        ) {
+          cell.classList.remove("highlight");
+          selected = null;
+          swapBtn.disabled = true;
+          setStatus("Selection cleared.", "info");
+          return;
+        }
+
+        if (!selected) {
+          selected = { row: r, col: c };
+          cell.classList.add("highlight");
+          swapBtn.disabled = true;
+          setStatus(
+            "Now pick another cell in the same column to swap rows.",
+            "info"
+          );
+        } else {
+          if (selected.col !== c) {
+            setStatus(
+              "You can only swap within the same column. First clear or finish your current selection.",
+              "error"
+            );
+            return;
+          }
+
+          if (selected.row === r) {
+            setStatus(
+              "You already selected this cell. Pick a different row in the same column.",
+              "error"
+            );
+            return;
+          }
+
+          const oldCell = gridEl.querySelector(
+            `.cell[data-row="${selected.row}"][data-col="${selected.col}"]`
+          );
+          if (oldCell) oldCell.classList.remove("highlight");
+
+          const fromRow = selected.row;
+          const toRow = r;
+          performSwapColumnRows(c, fromRow, toRow);
+          selected = null;
+          swapBtn.disabled = true;
+        }
+      }
+
+      function performSwapColumnRows(column, rowA, rowB) {
+        const temp = currentGrid[rowA][column];
+        currentGrid[rowA][column] = currentGrid[rowB][column];
+        currentGrid[rowB][column] = temp;
+
+        swapsUsed++;
+        renderGrid();
+        setStatus(
+          `Swapped rows ${rowA + 1} and ${rowB + 1} in column ${
+            column + 1
+          }.`,
+          "ok"
+        );
+      }
+
+      function resetPuzzle() {
+        currentGrid = JSON.parse(JSON.stringify(initialGrid));
+        swapsUsed = 0;
+        selected = null;
+        const cells = gridEl.querySelectorAll(".cell");
+        cells.forEach((c) => c.classList.remove("highlight"));
+        swapBtn.disabled = true;
+        renderGrid();
+        setStatus("Puzzle reset to original scrambled state.", "info");
+      }
+
+      function revealSolution() {
+        solverMode = false;
+        modeLabelEl.textContent = "Solution view";
+        currentGrid = solutionGrid.map((row) => [...row]);
+        renderGrid();
+        setStatus("Showing full solution. Use bottom panel to design/share.", "info");
+      }
+
+      function enterSolverMode() {
+        solverMode = true;
+        modeLabelEl.textContent = "Player mode";
+        resetPuzzle();
+      }
+
+      function applyWordsFromInputs() {
+        const mode = Array.from(builderModeInputs).find((i) => i.checked)?.value;
+        if (mode === "random") {
+          solutionWords = randomWords();
+          writeWordsToInputs(solutionWords);
+        } else {
+          const wordsOrError = readWordsFromInputs();
+          if (!wordsOrError) {
+            setStatus(
+              "Enter 5 valid 5-letter words using A–Z only.",
+              "error"
+            );
+            return;
+          }
+          if (wordsOrError.error) {
+            setStatus(wordsOrError.error, "error");
+            return;
+          }
+          solutionWords = wordsOrError;
+        }
+
+        const firstLetters = solutionWords.map((w) => safeAt(w, 0));
+        const uniq = new Set(firstLetters);
+        if (uniq.size !== GRID_SIZE) {
+          setStatus(
+            "First letter of each word must be different to keep the first column fixed but solvable.",
+            "error"
+          );
+          return;
+        }
+
+        initSolutionGrid(solutionWords);
+        permByCol = [];
+        initialGrid = buildInitialGridFromSolution();
+        currentGrid = JSON.parse(JSON.stringify(initialGrid));
+        swapsUsed = 0;
+        selected = null;
+        const cells = gridEl.querySelectorAll(".cell");
+        cells.forEach((c) => c.classList.remove("highlight"));
+        renderGrid();
+        modeLabelEl.textContent = solverMode ? "Player mode" : "Solution view";
+        setStatus(
+          "Solution updated. Use 'New random shuffle' to create a scrambled puzzle or 'Generate share link'.",
+          "ok"
+        );
+      }
+
+      function shuffleScramble() {
+        if (!solutionWords || solutionWords.length !== GRID_SIZE) {
+          setStatus(
+            "No valid solution words yet. Apply words first.",
+            "error"
+          );
+          return;
+        }
+        permByCol = [];
+        initialGrid = buildInitialGridFromSolution();
+        currentGrid = JSON.parse(JSON.stringify(initialGrid));
+        swapsUsed = 0;
+        selected = null;
+        solverMode = true;
+        modeLabelEl.textContent = "Player mode";
+        const cells = gridEl.querySelectorAll(".cell");
+        cells.forEach((c) => c.classList.remove("highlight"));
+        renderGrid();
+        setStatus("New scrambled puzzle created from your words.", "ok");
+      }
+
+      function generateShareLink() {
+        if (!solutionWords || solutionWords.length !== GRID_SIZE) {
+          setStatus(
+            "Define the solution words first using the bottom panel.",
+            "error"
+          );
+          return;
+        }
+
+        const encodedWords = encodeWords(solutionWords);
+
+        const puzzleWords = currentGrid.map((row) => row.join(""));
+        const firstLetters = puzzleWords.map((w) => safeAt(w, 0));
+        const uniq = new Set(firstLetters);
+        if (uniq.size !== GRID_SIZE) {
+          setStatus(
+            "Current grid does not have unique first-column letters in each row, which breaks the 'fixed first column' rule. Shuffle again.",
+            "error"
+          );
+          return;
+        }
+
+        const encodedState = encodeWords(puzzleWords);
+        const params = new URLSearchParams();
+        params.set("words", encodedWords);
+        params.set("state", encodedState);
+
+        const url =
+          window.location.origin +
+          window.location.pathname +
+          "?" +
+          params.toString();
+
+        shareLinkEl.value = url;
+        shareLinkEl.select();
+        try {
+          document.execCommand("copy");
+          setStatus("Share link generated and copied to clipboard.", "ok");
+        } catch {
+          setStatus(
+            "Share link generated. Copy it from the text area below.",
+            "ok"
+          );
+        }
+      }
+
+      function loadFromURL() {
+        const params = new URLSearchParams(window.location.search);
+        const encodedWords = params.get("words");
+        const encodedState = params.get("state");
+
+        if (!encodedWords) {
+          solutionWords = randomWords();
+          writeWordsToInputs(solutionWords);
+          initSolutionGrid(solutionWords);
+          initialGrid = buildInitialGridFromSolution();
+          currentGrid = JSON.parse(JSON.stringify(initialGrid));
+          swapsUsed = 0;
+          solverMode = true;
+          modeLabelEl.textContent = "Player mode";
+          renderGrid();
+          setStatus(
+            "Random puzzle generated. Use the bottom panel to design your own and share it.",
+            "info"
+          );
+          return;
+        }
+
+        const words = decodeWords(encodedWords);
+        if (!words) {
+          setStatus(
+            "URL contained invalid puzzle data. Falling back to a random puzzle.",
+            "error"
+          );
+          solutionWords = randomWords();
+          writeWordsToInputs(solutionWords);
+          initSolutionGrid(solutionWords);
+          initialGrid = buildInitialGridFromSolution();
+          currentGrid = JSON.parse(JSON.stringify(initialGrid));
+          swapsUsed = 0;
+          solverMode = true;
+          modeLabelEl.textContent = "Player mode";
+          renderGrid();
+          return;
+        }
+
+        solutionWords = words;
+        writeWordsToInputs(solutionWords);
+        initSolutionGrid(solutionWords);
+
+        if (encodedState) {
+          const puzzleRows = decodeWords(encodedState);
+          if (puzzleRows) {
+            currentGrid = puzzleRows.map((w) => w.split(""));
+            initialGrid = JSON.parse(JSON.stringify(currentGrid));
+          } else {
+            initialGrid = buildInitialGridFromSolution();
+            currentGrid = JSON.parse(JSON.stringify(initialGrid));
+          }
+        } else {
+          initialGrid = buildInitialGridFromSolution();
+          currentGrid = JSON.parse(JSON.stringify(initialGrid));
+        }
+
+        swapsUsed = 0;
+        solverMode = true;
+        modeLabelEl.textContent = "Player mode";
+        renderGrid();
+        setStatus(
+          "Loaded puzzle from shared link. Solve it by swapping rows within columns 2–5.",
+          "info"
+        );
+      }
+
+      swapBtn.addEventListener("click", () => {
+        if (!selected) return;
+        setStatus(
+          "Tap the second cell in the same column to complete the swap.",
+          "info"
+        );
+      });
+
+      resetBtn.addEventListener("click", () => {
+        resetPuzzle();
+      });
+
+      revealBtn.addEventListener("click", () => {
+        revealSolution();
+      });
+
+      applyWordsBtn.addEventListener("click", () => {
+        applyWordsFromInputs();
+      });
+
+      shuffleBtn.addEventListener("click", () => {
+        shuffleScramble();
+      });
+
+      generateLinkBtn.addEventListener("click", () => {
+        generateShareLink();
+      });
+
+      builderModeInputs.forEach((input) => {
+        input.addEventListener("change", () => {
+          if (input.value === "random") {
+            const rand = randomWords();
+            writeWordsToInputs(rand);
+          }
+        });
+      });
+
+      createGridDOM();
+      loadFromURL();
+    </script>
+  </body>
+</html>
